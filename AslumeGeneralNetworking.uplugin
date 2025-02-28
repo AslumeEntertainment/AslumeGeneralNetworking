@@ -3,7 +3,7 @@
 	"Version": 1,
 	"VersionName": "1.0",
 	"FriendlyName": "AslumeGeneralNetworking",
-	"Description": "",
+	"Description": "Compact, and Blueprint exposed, c++ implementation of the networking basics of UE5",
 	"Category": "Other",
 	"CreatedBy": "Aslume Entertainment",
 	"CreatedByURL": "",

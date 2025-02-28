@@ -26,6 +26,8 @@ public class AslumeGeneralNetworking : ModuleRules
 			new string[]
 			{
 				"Core",
+                "OnlineSubsystem",
+                "OnlineSubsystemUtils", 
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);
@@ -38,6 +40,8 @@ public class AslumeGeneralNetworking : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
+                //"OnlineSubsystem",  
+                //"OnlineSubsystemUtils", 
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);
