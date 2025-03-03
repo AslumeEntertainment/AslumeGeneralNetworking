@@ -149,31 +149,24 @@ void UAGN_SessionSubsystem::HandleUnRegisterPlayerComplete(FName SessionName, co
 
 bool UAGN_SessionSubsystem::DefaultCreateSession(FName SessionName, FString HostName)
 {
-	return CreateSession(0, SessionName, HostName, NumPublicConnections, NumPrivateConnections, bIsLANMatch, bShouldAdvertise, bUsesPresence, bUseLobbiesIfAvailable, bAllowInvites, bAllowJoinViaPresence, bAllowJoinInProgress);
+	return CreateSession(0, SessionName, HostName, DefaultSessionSettings);
 }
 
-bool UAGN_SessionSubsystem::CreateSession(int32 HostingPlayerNum, FName SessionName, FString HostName, int InNumPublicConnections, int InNumPrivateConnections, bool InbIsLANMatch, bool InbShouldAdvertise, bool InbUsesPresence, bool InbUseLobbiesIfAvailable, bool InbAllowInvites, bool InbAllowJoinViaPresence, bool InbAllowJoinInProgress)
+bool UAGN_SessionSubsystem::CreateSession(int32 HostingPlayerNum, FName SessionName, FString HostName, FSessionSettingsWrapper SessionSettings)
 {
-	TSharedRef<FOnlineSessionSettings> SessionSettings = MakeShared<FOnlineSessionSettings>();
+	FOnlineSessionSettings SessionSettingsRef = SessionSettings.Get();
 
 	// You *must* set at least one setting value, because you can not run FindSessions without any filters.
-	SessionSettings->Settings.Add(
+
+	//SessionSettingsRef
+
+	SessionSettingsRef.Settings.Add(
 		FName("HostName"),
 		FOnlineSessionSetting(HostName, EOnlineDataAdvertisementType::ViaOnlineService));
 
-	SessionSettings->NumPublicConnections = InNumPublicConnections;
-	SessionSettings->NumPrivateConnections = InNumPrivateConnections;
-	SessionSettings->bIsLANMatch = InbIsLANMatch;
-	SessionSettings->bShouldAdvertise = InbShouldAdvertise;
-	SessionSettings->bUsesPresence = InbUsesPresence;
-	SessionSettings->bUseLobbiesIfAvailable = InbUseLobbiesIfAvailable;
-	SessionSettings->bAllowInvites = InbAllowInvites;
-	SessionSettings->bAllowJoinViaPresence = InbAllowJoinViaPresence;
-	SessionSettings->bAllowJoinInProgress = InbAllowJoinInProgress;
-
 	SessionInterface->OnCreateSessionCompleteDelegates.AddUObject(this, &UAGN_SessionSubsystem::HandleCreateSessionComplete);
 
-	if (!SessionInterface->CreateSession(0, SessionName, *SessionSettings))
+	if (!SessionInterface->CreateSession(0, SessionName, SessionSettingsRef))
 	{
 		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Error, TEXT("Creation of session: %s cloud not be started..."), *SessionName.ToString());
 
@@ -211,16 +204,11 @@ void UAGN_SessionSubsystem::OnCreateSessionCompleted_Implementation(FName Sessio
 
 //---------------------------------------------------------------FINDING SESSION------------------------------------------
 
-bool UAGN_SessionSubsystem::FindSessions()
+bool UAGN_SessionSubsystem::FindSessions(FSessionSearchWrapper SearchSettings)
 {
 	SessionInterface->OnFindSessionsCompleteDelegates.AddUObject(this, &UAGN_SessionSubsystem::HandleFindSessionsComplete);
 
-	SearchSettings.MaxSearchResults = MaxSearchResults;
-	SearchSettings.PingBucketSize = PingBucketSize;
-	SearchSettings.bIsLanQuery = bIsLanQuery;
-	//SearchSettings.QuerySettings.
-
-	TSharedRef<FOnlineSessionSearch> SearchSettingsPtr = MakeShared<FOnlineSessionSearch>(SearchSettings);
+	TSharedRef<FOnlineSessionSearch> SearchSettingsPtr = MakeShared<FOnlineSessionSearch>(SearchSettings.Get());
 
 	if (!SessionInterface->FindSessions(0, SearchSettingsPtr))
 	{

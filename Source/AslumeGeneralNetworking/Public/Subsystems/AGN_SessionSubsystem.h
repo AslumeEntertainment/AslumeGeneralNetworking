@@ -6,12 +6,15 @@
 #include "Subsystems/GameInstanceSubsystem.h"
 
 #include "Interfaces/OnlineSessionInterface.h"
-#include "OnlineSessionSettings.h"
-#include "FindSessionsCallbackProxy.h"
 
 #include "Headers/AGN_SessionState.h"
+#include "Headers/AGN_BlueprintWrapperStructs.h"
 
 #include "AGN_SessionSubsystem.generated.h"
+
+
+
+
 
 /**
  * 
@@ -29,8 +32,6 @@ protected:
 	bool bShouldStayIdle = true;
 
 	IOnlineSessionPtr SessionInterface = nullptr;
-
-	FOnlineSessionSearch SearchSettings;
 
 	/**
 	Found URL to be joined. Normally empty
@@ -195,41 +196,10 @@ public:
 	int ConnectionPort = 7779;
 
 	UPROPERTY(EditDefaultsOnly, Category = "SessionSettings | Creating")
-	int NumPublicConnections = 8;
+	FSessionSettingsWrapper DefaultSessionSettings;
 
-	UPROPERTY(EditDefaultsOnly, Category = "SessionSettings | Creating")
-	int NumPrivateConnections = 0;
-
-	UPROPERTY(EditDefaultsOnly, Category = "SessionSettings | Creating")
-	bool bIsLANMatch = false;
-
-	UPROPERTY(EditDefaultsOnly, Category = "SessionSettings | Creating")
-	bool bShouldAdvertise = false;
-
-	UPROPERTY(EditDefaultsOnly, Category = "SessionSettings | Creating")
-	bool bUsesPresence = true;
-
-	UPROPERTY(EditDefaultsOnly, Category = "SessionSettings | Creating")
-	bool bUseLobbiesIfAvailable = false;
-
-	UPROPERTY(EditDefaultsOnly, Category = "SessionSettings | Creating")
-	bool bAllowInvites = true;
-
-	UPROPERTY(EditDefaultsOnly, Category = "SessionSettings | Creating")
-	bool bAllowJoinViaPresence = false;
-
-	UPROPERTY(EditDefaultsOnly, Category = "SessionSettings | Creating")
-	bool bAllowJoinInProgress = false;
-
-	UPROPERTY(EditDefaultsOnly, Category = "SessionSettings | Searching")
-	int MaxSearchResults = 99;
-
-	UPROPERTY(EditDefaultsOnly, Category = "SessionSettings | Searching")
-	int PingBucketSize = 99;
-
-	UPROPERTY(EditDefaultsOnly, Category = "SessionSettings | Searching")
-	bool bIsLanQuery = false;
-
+	UPROPERTY(EditDefaultsOnly, Category = "SessionSettings | Searching");
+	FSessionSearchWrapper DeafaultSearchSettings;
 	
 	/**
 	 Attempt create session with the default parameters set in the subsystem
@@ -257,7 +227,7 @@ public:
 	* @return Whether the attempt was started
 	*/
 	UFUNCTION(BlueprintCallable)
-	virtual bool CreateSession(int32 HostingPlayerNum, FName SessionName, FString HostName, int InNumPublicConnections, int InNumPrivateConnections, bool InbIsLANMatch, bool InbShouldAdvertise, bool InbUsesPresence, bool InbUseLobbiesIfAvailable, bool InbAllowInvites, bool InbAllowJoinViaPresence, bool InbAllowJoinInProgress);
+	virtual bool CreateSession(int32 HostingPlayerNum, FName SessionName, FString HostName, FSessionSettingsWrapper SessionSettings);
 
 	/**
 	* Attempt finding sessions with the given parameters
@@ -266,7 +236,7 @@ public:
 	* @return Whether the attempt was started
 	*/
 	UFUNCTION(BlueprintCallable)
-	virtual bool FindSessions();
+	virtual bool FindSessions(FSessionSearchWrapper SearchSettings);
 
 	/**
 	* Attempt joining the session currently saved in {FOnlineSessionSearchResult CurrentSessionToJoin}
