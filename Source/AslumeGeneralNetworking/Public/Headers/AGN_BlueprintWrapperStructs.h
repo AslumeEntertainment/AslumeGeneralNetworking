@@ -8,6 +8,9 @@
 
 #include "AGN_BlueprintWrapperStructs.generated.h"
 
+/**
+ Blueprintable enum specifying Join Policy
+*/
 UENUM(BlueprintType)
 enum class EOnlineSessionJoinPolicy : uint8
 {
@@ -21,6 +24,9 @@ enum class EOnlineSessionJoinPolicy : uint8
 	InviteOnly
 };
 
+/**
+ Direct blueprintable wrapper for EOnlineDataAdvertisementType
+*/
 UENUM(BlueprintType)
 enum class EOnlineDataAdvertisementTypeWrapper : uint8
 {
@@ -34,15 +40,176 @@ enum class EOnlineDataAdvertisementTypeWrapper : uint8
 	ViaOnlineServiceAndPing
 };
 
+/** 
+	Direct blueprintable wrapper for FVariantData.
+	Uses all of its subclassess to emulate ambiguous data
+*/
+UCLASS(Abstract, EditInlineNew, DefaultToInstanced, CollapseCategories)
+class ASLUMEGENERALNETWORKING_API UVariantDataWrapper : public UObject
+{
+	GENERATED_BODY()
+
+public:
+
+	virtual FVariantData Get() PURE_VIRTUAL(UVariantDataWrapper::IsValid, return FVariantData(););
+
+};
+
+/**
+	Boolean extentions for UVariantDataWrapper.
+*/
+UCLASS(BlueprintType)
+class ASLUMEGENERALNETWORKING_API UBoolDataWrapper : public UVariantDataWrapper
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool Data = false;
+
+	virtual FVariantData Get() override
+	{
+		FVariantData Value = FVariantData();
+		Value.SetValue(Data);
+		return Value;
+	}
+};
+
+/**
+	Integer extentions for UVariantDataWrapper.
+*/
+UCLASS(BlueprintType)
+class ASLUMEGENERALNETWORKING_API UIntDataWrapper : public UVariantDataWrapper
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int Data = 0;
+
+	virtual FVariantData Get() override
+	{
+		FVariantData Value = FVariantData();
+		Value.SetValue(Data);
+		return Value;
+	}
+};
+
+/**
+	Long Integer extentions for UVariantDataWrapper.
+*/
+UCLASS(BlueprintType)
+class ASLUMEGENERALNETWORKING_API ULongIntDataWrapper : public UVariantDataWrapper
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int64 Data = 0;
+
+	virtual FVariantData Get() override
+	{
+		FVariantData Value = FVariantData();
+		Value.SetValue(Data);
+		return Value;
+	}
+};
+
+/**
+	Float extentions for UVariantDataWrapper.
+*/
+UCLASS(BlueprintType)
+class ASLUMEGENERALNETWORKING_API UFloatDataWrapper : public UVariantDataWrapper
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float Data = 0;
+
+	virtual FVariantData Get() override
+	{
+		FVariantData Value = FVariantData();
+		Value.SetValue(Data);
+		return Value;
+	}
+};
+
+/**
+	Long Float (Double) extentions for UVariantDataWrapper.
+*/
+UCLASS(BlueprintType)
+class ASLUMEGENERALNETWORKING_API UDoubleDataWrapper : public UVariantDataWrapper
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	double Data = 0;
+
+	virtual FVariantData Get() override
+	{
+		FVariantData Value = FVariantData();
+		Value.SetValue(Data);
+		return Value;
+	}
+};
+
+/**
+	String extentions for UVariantDataWrapper.
+*/
+UCLASS(BlueprintType)
+class ASLUMEGENERALNETWORKING_API UStringDataWrapper : public UVariantDataWrapper
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FString Data = "";
+
+	virtual FVariantData Get() override
+	{
+		FVariantData Value = FVariantData();
+		Value.SetValue(Data);
+		return Value;
+	}
+};
+
+/**
+	Raw byte (Blob) extentions for UVariantDataWrapper.
+*/
+UCLASS(BlueprintType)
+class ASLUMEGENERALNETWORKING_API UBlobDataWrapper : public UVariantDataWrapper
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 BlobSize = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	uint8 BlobData = 0;
+
+	virtual FVariantData Get() override
+	{
+		FVariantData Value = FVariantData();
+		Value.SetValue(BlobSize, &BlobData);
+		return Value;
+	}
+};
+
+/**
+ Direct blueprintable wrapper for FOnlineSessionSetting
+*/
 USTRUCT(BlueprintType)
-struct FOnlineSessionSettingWrapper
+struct FSpecificSessionSettingWrapper
 {
 	GENERATED_BODY()
 
 public:
 	/** Settings value */
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FVariantData Data;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UVariantDataWrapper* Data = nullptr;
 
 	/** How is this session setting advertised with the backend or searches */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -50,7 +217,7 @@ public:
 
 	/** Optional ID used in some platforms as the index instead of the session name */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 ID;
+	int32 ID = 0;
 
 	FOnlineSessionSetting Get()
 	{
@@ -72,19 +239,19 @@ public:
 			Value.AdvertisementType = EOnlineDataAdvertisementType::DontAdvertise; break;
 		}
 
-		Value.Data = FVariantData();
+		Value.Data = Data->Get();
 		return Value;
 	}
 };
 
 /**
- Direct blueprintable wrapper for FOnlineSessionSettings
+ Direct blueprintable wrapper for FSessionSettings
 */
 USTRUCT(BlueprintType)
 struct FSessionSettingsWrapper
 {
 	GENERATED_BODY()
-
+public:
 	/** The join policy [Public, FrientsOnly, InvitesOnly] |Currently Does nothing| */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	EOnlineSessionJoinPolicy JoinPolicy = EOnlineSessionJoinPolicy::Public;
@@ -145,17 +312,9 @@ struct FSessionSettingsWrapper
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bUseLobbiesVoiceChatIfAvailable = false;
 
-	/** Manual override for the Session Id instead of having one assigned by the backend. Its size may be restricted depending on the platform */
+	/** Map of custom [Name - Specific Session Setting] */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FString SessionIdOverride;
-
-	/** Used to keep different builds from seeing each other during searches */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 BuildUniqueId = 1001;
-
-	/** Array of custom session settings */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TMap<FName, FOnlineSessionSettingWrapper> Settings;
+	TMap<FName, FSpecificSessionSettingWrapper> Settings;
 
 	/** Map of custom settings per session member (Not currently used by every OSS) [Handled at runtime] */
 	TUniqueNetIdMap<FSessionSettings> MemberSettings;
@@ -177,11 +336,10 @@ struct FSessionSettingsWrapper
 		Value.bAntiCheatProtected = bAntiCheatProtected;
 		Value.bUseLobbiesIfAvailable = bUseLobbiesIfAvailable;
 		Value.bUseLobbiesVoiceChatIfAvailable = bUseLobbiesVoiceChatIfAvailable;
-		Value.SessionIdOverride = SessionIdOverride;
 
-		Value.BuildUniqueId = BuildUniqueId;
+		Value.BuildUniqueId = GetBuildUniqueId();
 		Value.Settings = FSessionSettings();
-		for (TPair<FName, FOnlineSessionSettingWrapper> Setting : Settings)
+		for (TPair<FName, FSpecificSessionSettingWrapper> Setting : Settings)
 		{
 			Value.Settings.Add(Setting.Key, Setting.Value.Get());
 		}
@@ -189,8 +347,66 @@ struct FSessionSettingsWrapper
 
 		return Value;
 	}
+	
 };
 
+
+UENUM(BlueprintType)
+enum class EOnlineComparisonOpWrapper : uint8
+{
+	Equals,
+	NotEquals,
+	GreaterThan,
+	GreaterThanEquals,
+	LessThan,
+	LessThanEquals,
+	Near,
+	In,
+	NotIn
+};
+
+/**
+ Direct blueprintable wrapper for FSpecificSearchSetting
+*/
+USTRUCT(BlueprintType)
+struct FSpecificSearchSettingWrapper
+{
+	GENERATED_BODY()
+
+public:
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UVariantDataWrapper* Data = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EOnlineComparisonOpWrapper ComparisonOp = EOnlineComparisonOpWrapper::Equals;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 ID = 0;
+
+	FOnlineSessionSearchParam Get()
+	{
+		EOnlineComparisonOp::Type Op;
+		switch (ComparisonOp)
+		{
+		case EOnlineComparisonOpWrapper::GreaterThan: Op = EOnlineComparisonOp::Type::GreaterThan; break;
+		case EOnlineComparisonOpWrapper::GreaterThanEquals: Op = EOnlineComparisonOp::Type::GreaterThanEquals; break;
+		case EOnlineComparisonOpWrapper::In: Op = EOnlineComparisonOp::Type::In; break;
+		case EOnlineComparisonOpWrapper::LessThan: Op = EOnlineComparisonOp::Type::LessThan; break;
+		case EOnlineComparisonOpWrapper::LessThanEquals : Op = EOnlineComparisonOp::Type::LessThanEquals; break;
+		case EOnlineComparisonOpWrapper::Near: Op = EOnlineComparisonOp::Type::Near; break;
+		case EOnlineComparisonOpWrapper::NotEquals: Op = EOnlineComparisonOp::Type::NotEquals; break;
+		case EOnlineComparisonOpWrapper::NotIn: Op = EOnlineComparisonOp::Type::NotIn; break;
+
+		default: Op = EOnlineComparisonOp::Type::Equals;
+			break;
+		}
+		FOnlineSessionSearchParam Value = FOnlineSessionSearchParam(Data->Get(), Op, ID);
+
+		return Value;
+	}
+
+};
 
 /**
  Direct blueprintable wrapper for FOnlineSessionSearch
@@ -205,8 +421,8 @@ struct FSessionSearchWrapper
 	TArray<FOnlineSessionSearchResult> SearchResults;
 
 	/** The query to use for finding matching servers */
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FOnlineSearchSettings QuerySettings;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TMap<FName, FSpecificSearchSettingWrapper> QuerySettings;
 
 	/** State of the search */
 	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
@@ -235,18 +451,24 @@ struct FSessionSearchWrapper
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float TimeoutInSeconds = 4;
 
-	FOnlineSessionSearch Get()
+	TSharedPtr<class FOnlineSessionSearch> Get()
 	{
-		FOnlineSessionSearch Value = FOnlineSessionSearch();
-		Value.bIsLanQuery = bIsLanQuery;
-		Value.PingBucketSize = PingBucketSize;
-		Value.MaxSearchResults = MaxSearchResults;
-		Value.PlatformHash = PlatformHash;
-		Value.QuerySettings = QuerySettings;
-		Value.SearchResults = SearchResults;
-		Value.SearchState = SearchState;
-		Value.TimeoutInSeconds = TimeoutInSeconds;
-		return Value;
+		FOnlineSessionSearch* Value = new FOnlineSessionSearch();
+		Value->bIsLanQuery = bIsLanQuery;
+		Value->PingBucketSize = PingBucketSize;
+		Value->MaxSearchResults = MaxSearchResults;
+		Value->PlatformHash = PlatformHash;
+		Value->SearchResults = SearchResults;
+		Value->SearchState = SearchState;
+		Value->TimeoutInSeconds = TimeoutInSeconds;
+
+		for (TPair<FName, FSpecificSearchSettingWrapper> Setting : QuerySettings)
+		{
+			 Value->QuerySettings.SearchParams.Add(Setting.Key, Setting.Value.Get());
+		}
+		
+
+		return MakeShareable(Value);
 	}
 
 };

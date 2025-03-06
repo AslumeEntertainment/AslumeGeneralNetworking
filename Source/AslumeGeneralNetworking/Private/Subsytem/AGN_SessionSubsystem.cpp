@@ -72,7 +72,7 @@ void UAGN_SessionSubsystem::Deinitialize()
 
 void UAGN_SessionSubsystem::RegisterNewPlayer(FName SessionName, const FUniqueNetId& PlayerID)
 {
-	if (SessionInterface->IsPlayerInSession(GameSessionLocalName, PlayerID))
+	if (SessionInterface->IsPlayerInSession(CurrentSessionName, PlayerID))
 	{
 		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Display, TEXT("New Player[%s] alredy registered in session: %s"), *PlayerID.ToString(), *SessionName.ToString());
 		return;
@@ -111,7 +111,7 @@ void UAGN_SessionSubsystem::HandleRegisterNewPlayerComplete(FName SessionName, c
 
 void UAGN_SessionSubsystem::UnRegisterPlayer(FName SessionName, const FUniqueNetId& PlayerID, EOnSessionParticipantLeftReason Reason)
 {
-	if (!SessionInterface->IsPlayerInSession(GameSessionLocalName, PlayerID))
+	if (!SessionInterface->IsPlayerInSession(CurrentSessionName, PlayerID))
 	{
 		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Display, TEXT("Player[%s] is NOT in session: %s"), *PlayerID.ToString(), *SessionName.ToString());
 		return;
@@ -159,6 +159,9 @@ bool UAGN_SessionSubsystem::CreateSession(int32 HostingPlayerNum, FName SessionN
 	// You *must* set at least one setting value, because you can not run FindSessions without any filters.
 
 	//SessionSettingsRef
+	SessionSettingsRef.Settings.Add(
+		FName("GameID"),
+		FOnlineSessionSetting(GameID, EOnlineDataAdvertisementType::ViaOnlineService));
 
 	SessionSettingsRef.Settings.Add(
 		FName("HostName"),
@@ -180,23 +183,21 @@ bool UAGN_SessionSubsystem::CreateSession(int32 HostingPlayerNum, FName SessionN
 
 void UAGN_SessionSubsystem::HandleCreateSessionComplete(FName SessionName, bool bWasSuccessful)
 {
-
 	SessionInterface->ClearOnCreateSessionCompleteDelegates(this);
-	OnCreateSessionCompleted(SessionName, bWasSuccessful);
-}
 
-void UAGN_SessionSubsystem::OnCreateSessionCompleted_Implementation(FName SessionName, bool bWasSuccessful)
-{
 	if (bWasSuccessful == false)
 	{
-		//fire off error delegate for this shit
 		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Error, TEXT("Session: %s cloud NOT be created"), *SessionName.ToString());
-		return;
+		CurrentSessionName = FName("");
+	}
+	else
+	{
+		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Display, TEXT("Created Session: %s"), *SessionName.ToString());
+		LocalHostingState = EAGN_HostingState::Hosting;
+		CurrentSessionName = SessionName;
 	}
 
-	UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Display, TEXT("Created Session: %s"), *SessionName.ToString());
-
-	LocalHostingState = EAGN_HostingState::Hosting;
+	OnCreateSessionCompleted.Broadcast(SessionName, bWasSuccessful);
 }
 //---------------------------------------------------------------CREATING SESSION------------------------------------------
 
@@ -204,17 +205,28 @@ void UAGN_SessionSubsystem::OnCreateSessionCompleted_Implementation(FName Sessio
 
 //---------------------------------------------------------------FINDING SESSION------------------------------------------
 
+bool UAGN_SessionSubsystem::DefautFindSessions()
+{
+	return FindSessions(DefaultSearchSettings);
+}
+
 bool UAGN_SessionSubsystem::FindSessions(FSessionSearchWrapper SearchSettings)
 {
 	SessionInterface->OnFindSessionsCompleteDelegates.AddUObject(this, &UAGN_SessionSubsystem::HandleFindSessionsComplete);
 
-	TSharedRef<FOnlineSessionSearch> SearchSettingsPtr = MakeShared<FOnlineSessionSearch>(SearchSettings.Get());
+	CurrentSearchSettings = SearchSettings.Get();
 
-	if (!SessionInterface->FindSessions(0, SearchSettingsPtr))
+	CurrentSearchSettings->QuerySettings.SearchParams.Add(
+		FName("GameID"),
+		FOnlineSessionSearchParam(GameID));
+
+	if (!SessionInterface->FindSessions(0, CurrentSearchSettings.ToSharedRef()))
 	{
 		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Error, TEXT("Searching for sessions cloud not be started..."));
 
 		SessionInterface->ClearOnFindSessionsCompleteDelegates(this);
+
+		CurrentSearchSettings = MakeShareable(new FOnlineSessionSearch());
 
 		return false;
 	}
@@ -225,19 +237,20 @@ bool UAGN_SessionSubsystem::FindSessions(FSessionSearchWrapper SearchSettings)
 void UAGN_SessionSubsystem::HandleFindSessionsComplete(bool bWasSuccessful)
 {
 	SessionInterface->ClearOnFindSessionsCompleteDelegates(this);
-	OnFindSessionsCompleted(bWasSuccessful);
-}
 
-void UAGN_SessionSubsystem::OnFindSessionsCompleted_Implementation(bool bWasSuccessful)
-{
 	if (bWasSuccessful == false)
 	{
-		//fire off error delegate for this shit
 		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Error, TEXT("Session Search failed"));
-		return;
+		CurrentSearchSettings = MakeShareable(new FOnlineSessionSearch());
+	}
+	else
+	{
+		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Display, TEXT("Found some sessions"));
 	}
 
-	UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Display, TEXT("Found some sessions"));
+	int NumSession = CurrentSearchSettings->SearchResults.Num();
+	UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Display, TEXT("Ping bucket size: %d"), CurrentSearchSettings->PingBucketSize);
+	OnFindSessionsCompleted.Broadcast(NumSession, bWasSuccessful);
 }
 //---------------------------------------------------------------FINDING SESSION------------------------------------------
 
