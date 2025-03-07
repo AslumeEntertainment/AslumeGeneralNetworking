@@ -252,7 +252,7 @@ struct FSessionSettingsWrapper
 {
 	GENERATED_BODY()
 public:
-	/** The join policy [Public, FrientsOnly, InvitesOnly] |Currently Does nothing| */
+	/** The join policy [Currently Does nothing] */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	EOnlineSessionJoinPolicy JoinPolicy = EOnlineSessionJoinPolicy::Public;
 
@@ -337,7 +337,6 @@ public:
 		Value.bUseLobbiesIfAvailable = bUseLobbiesIfAvailable;
 		Value.bUseLobbiesVoiceChatIfAvailable = bUseLobbiesVoiceChatIfAvailable;
 
-		Value.BuildUniqueId = GetBuildUniqueId();
 		Value.Settings = FSessionSettings();
 		for (TPair<FName, FSpecificSessionSettingWrapper> Setting : Settings)
 		{
@@ -416,10 +415,6 @@ struct FSessionSearchWrapper
 {
 	GENERATED_BODY()
 
-	/** Array of all sessions found when searching for the given criteria */
-	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	TArray<FOnlineSessionSearchResult> SearchResults;
-
 	/** The query to use for finding matching servers */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TMap<FName, FSpecificSearchSettingWrapper> QuerySettings;
@@ -458,7 +453,6 @@ struct FSessionSearchWrapper
 		Value->PingBucketSize = PingBucketSize;
 		Value->MaxSearchResults = MaxSearchResults;
 		Value->PlatformHash = PlatformHash;
-		Value->SearchResults = SearchResults;
 		Value->SearchState = SearchState;
 		Value->TimeoutInSeconds = TimeoutInSeconds;
 
@@ -471,4 +465,53 @@ struct FSessionSearchWrapper
 		return MakeShareable(Value);
 	}
 
+};
+
+/** Direct blueprintable wrapper for FOnlineSessionSearchResult */
+USTRUCT(BlueprintType)
+struct FOnlineSessionSearchResultWrapper
+{
+	GENERATED_BODY()
+public:
+
+	UPROPERTY(BlueprintReadOnly)
+	FString SessionName;
+
+	/** All advertised session information */
+	FOnlineSession Session;
+
+	/** Ping to the search result, MAX_QUERY_PING is unreachable */
+	UPROPERTY(BlueprintReadOnly)
+	int32 PingInMs = 9999;
+
+	/**
+	 *	@return true if the search result is valid, false otherwise
+	 */
+	bool IsValid() const
+	{
+		return (Session.OwningUserId.IsValid() && IsSessionInfoValid());
+	}
+
+	/**
+	 * Check if the session info is valid, for cases where we don't need the OwningUserId
+	 * @return true if the session info is valid, false otherwise
+	 */
+	bool IsSessionInfoValid() const
+	{
+		return (Session.SessionInfo.IsValid() && Session.SessionInfo->IsValid());
+	}
+
+	/** @return the session id for a given session search result */
+	FString GetSessionIdStr() const
+	{
+		return Session.GetSessionIdStr();
+	}
+
+	FOnlineSessionSearchResult Get()
+	{
+		FOnlineSessionSearchResult Value = FOnlineSessionSearchResult();
+		Value.Session = Session;
+		Value.PingInMs = PingInMs;
+		return Value;
+	}
 };

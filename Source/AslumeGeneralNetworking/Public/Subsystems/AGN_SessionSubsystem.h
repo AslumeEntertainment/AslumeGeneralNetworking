@@ -14,7 +14,8 @@
 
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCreateSessionCompletedSignature, FName, SessionName, bool, bWasSuccessful);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnFindSessionsCompletedSignature, int, NumSessions, bool, bWasSuccessful);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnFindSessionsCompletedSignature, const TArray<FOnlineSessionSearchResultWrapper>&, Sessions, bool, bWasSuccessful);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnJoinSessionCompletedSignature, bool, bWasSuccessful);
 
 /**
  * 
@@ -39,14 +40,14 @@ protected:
 	TSharedPtr<class FOnlineSessionSearch> CurrentSearchSettings;
 
 	/**
-	The current session's name
+	The connection info for the current joining session
 	*/
-	FName CurrentSessionName = "";
+	FString CurrentJoiningSessionConnectInfo;
 
 	/**
-	Found search result to be joined. Normally empty
+	Used for nameing the local session in order to 
 	*/
-	FOnlineSessionSearchResult CurrentSessionToJoin;
+	FName GameSessionLocalName = "AGN_LOCAL_SESSION";
 
 	/**
 	The current user's session state [Idle, Hosting, Joined]
@@ -153,6 +154,11 @@ protected:
 
 public:
 
+	static const FName GameIDSetting;
+	static const FName SessionNameSetting;
+
+	static TArray<FOnlineSessionSearchResultWrapper> WrapSearchResults(TArray<FOnlineSessionSearchResult> FoundSessions);
+
 	UPROPERTY(EditDefaultsOnly, Category = "ServerSettings | Connection")
 	int ConnectionPort = 7779;
 
@@ -176,7 +182,7 @@ public:
 	* @return Wether the attempt was started
 	*/
 	UFUNCTION(BlueprintCallable)
-	virtual bool DefaultCreateSession(FName SessionName, FString HostName = "USG");
+	virtual bool DefaultCreateSession(FString SessionName);
 
 	/**
 	* Attempt create session with the given parameters
@@ -199,7 +205,7 @@ public:
 	* @return Whether the attempt was started
 	*/
 	UFUNCTION(BlueprintCallable)
-	virtual bool CreateSession(int32 HostingPlayerNum, FName SessionName, FString HostName, FSessionSettingsWrapper SessionSettings);
+	virtual bool CreateSession(int32 HostingPlayerNum, FString SessionName, FSessionSettingsWrapper SessionSettings);
 
 	/**
 	* Attempt finding sessions with the default SearchSettings
@@ -228,7 +234,7 @@ public:
 	* @return Wether the attempt was started
 	*/
 	UFUNCTION(BlueprintCallable)
-	virtual bool JoinSession(int32 PlayerNum, FName SessionName);
+	virtual bool JoinSession(int32 PlayerNum, FOnlineSessionSearchResultWrapper Session);
 
 	/**
 	* Attempt destroying the current local session
@@ -256,8 +262,18 @@ public:
 	* Delegate called after FindSessions attempt finishes
 	* Assignable in blueprints and c++
 	*
+	* @param Sessions - All the found session in blueprint digestable format
 	* @param bWasSuccessful - Whether the search was successful
 	*/
 	UPROPERTY(BlueprintAssignable)
 	FOnFindSessionsCompletedSignature OnFindSessionsCompleted;
+
+	/**
+	* Delegate called after JoinSession attempt finishes
+	* Assignable in blueprints and c++
+	*
+	* @param bWasSuccessful - Whether the search was successful
+	*/
+	UPROPERTY(BlueprintAssignable)
+	FOnJoinSessionCompletedSignature OnJoinSessionCompleted;
 };

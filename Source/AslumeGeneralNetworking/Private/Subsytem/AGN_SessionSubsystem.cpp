@@ -9,6 +9,29 @@
 
 DEFINE_LOG_CATEGORY_STATIC(AslumeGeneralNetwoking_SessionSubsystem, Log, All);
 
+const FName UAGN_SessionSubsystem::GameIDSetting = FName("GameID");
+const FName UAGN_SessionSubsystem::SessionNameSetting = FName("SessionName");
+
+TArray<FOnlineSessionSearchResultWrapper> UAGN_SessionSubsystem::WrapSearchResults(TArray<FOnlineSessionSearchResult> FoundSessions)
+{
+	TArray<FOnlineSessionSearchResultWrapper> FoundSessionsWrapped = TArray<FOnlineSessionSearchResultWrapper>();
+
+	for (FOnlineSessionSearchResult Session : FoundSessions)
+	{
+		FOnlineSessionSearchResultWrapper SessionWrapped = FOnlineSessionSearchResultWrapper();
+		if (!Session.Session.SessionSettings.Get<FString>(SessionNameSetting, SessionWrapped.SessionName))
+		{
+			UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Warning, TEXT("UAGN_SessionSubsystem::WrapSearchResults - Problem Getting Session Name"));
+		}
+		SessionWrapped.Session = Session.Session;
+		SessionWrapped.PingInMs = Session.PingInMs;
+		FoundSessionsWrapped.Add(SessionWrapped);
+	}
+
+	return FoundSessionsWrapped;
+}
+
+
 //---------------------------------------------------------------INITIALIZATION------------------------------------------
 
 bool UAGN_SessionSubsystem::ShouldCreateSubsystem(UObject* Outer) const
@@ -72,7 +95,7 @@ void UAGN_SessionSubsystem::Deinitialize()
 
 void UAGN_SessionSubsystem::RegisterNewPlayer(FName SessionName, const FUniqueNetId& PlayerID)
 {
-	if (SessionInterface->IsPlayerInSession(CurrentSessionName, PlayerID))
+	if (SessionInterface->IsPlayerInSession(GameSessionLocalName, PlayerID))
 	{
 		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Display, TEXT("New Player[%s] alredy registered in session: %s"), *PlayerID.ToString(), *SessionName.ToString());
 		return;
@@ -111,7 +134,7 @@ void UAGN_SessionSubsystem::HandleRegisterNewPlayerComplete(FName SessionName, c
 
 void UAGN_SessionSubsystem::UnRegisterPlayer(FName SessionName, const FUniqueNetId& PlayerID, EOnSessionParticipantLeftReason Reason)
 {
-	if (!SessionInterface->IsPlayerInSession(CurrentSessionName, PlayerID))
+	if (!SessionInterface->IsPlayerInSession(GameSessionLocalName, PlayerID))
 	{
 		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Display, TEXT("Player[%s] is NOT in session: %s"), *PlayerID.ToString(), *SessionName.ToString());
 		return;
@@ -147,12 +170,12 @@ void UAGN_SessionSubsystem::HandleUnRegisterPlayerComplete(FName SessionName, co
 
 //---------------------------------------------------------------CREATING SESSION------------------------------------------
 
-bool UAGN_SessionSubsystem::DefaultCreateSession(FName SessionName, FString HostName)
+bool UAGN_SessionSubsystem::DefaultCreateSession(FString SessionName)
 {
-	return CreateSession(0, SessionName, HostName, DefaultSessionSettings);
+	return CreateSession(0, SessionName, DefaultSessionSettings);
 }
 
-bool UAGN_SessionSubsystem::CreateSession(int32 HostingPlayerNum, FName SessionName, FString HostName, FSessionSettingsWrapper SessionSettings)
+bool UAGN_SessionSubsystem::CreateSession(int32 HostingPlayerNum, FString SessionName, FSessionSettingsWrapper SessionSettings)
 {
 	FOnlineSessionSettings SessionSettingsRef = SessionSettings.Get();
 
@@ -160,18 +183,18 @@ bool UAGN_SessionSubsystem::CreateSession(int32 HostingPlayerNum, FName SessionN
 
 	//SessionSettingsRef
 	SessionSettingsRef.Settings.Add(
-		FName("GameID"),
+		GameIDSetting,
 		FOnlineSessionSetting(GameID, EOnlineDataAdvertisementType::ViaOnlineService));
 
 	SessionSettingsRef.Settings.Add(
-		FName("HostName"),
-		FOnlineSessionSetting(HostName, EOnlineDataAdvertisementType::ViaOnlineService));
+		SessionNameSetting,
+		FOnlineSessionSetting(SessionName, EOnlineDataAdvertisementType::ViaOnlineService));
 
 	SessionInterface->OnCreateSessionCompleteDelegates.AddUObject(this, &UAGN_SessionSubsystem::HandleCreateSessionComplete);
 
-	if (!SessionInterface->CreateSession(0, SessionName, SessionSettingsRef))
+	if (!SessionInterface->CreateSession(0, GameSessionLocalName, SessionSettingsRef))
 	{
-		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Error, TEXT("Creation of session: %s cloud not be started..."), *SessionName.ToString());
+		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Error, TEXT("Creation of session: %s cloud not be started..."), *SessionName);
 
 		SessionInterface->ClearOnCreateSessionCompleteDelegates(this);
 
@@ -188,13 +211,11 @@ void UAGN_SessionSubsystem::HandleCreateSessionComplete(FName SessionName, bool 
 	if (bWasSuccessful == false)
 	{
 		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Error, TEXT("Session: %s cloud NOT be created"), *SessionName.ToString());
-		CurrentSessionName = FName("");
 	}
 	else
 	{
-		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Display, TEXT("Created Session: %s"), *SessionName.ToString());
+		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Display, TEXT("Created Session"));
 		LocalHostingState = EAGN_HostingState::Hosting;
-		CurrentSessionName = SessionName;
 	}
 
 	OnCreateSessionCompleted.Broadcast(SessionName, bWasSuccessful);
@@ -216,9 +237,9 @@ bool UAGN_SessionSubsystem::FindSessions(FSessionSearchWrapper SearchSettings)
 
 	CurrentSearchSettings = SearchSettings.Get();
 
-	CurrentSearchSettings->QuerySettings.SearchParams.Add(
-		FName("GameID"),
-		FOnlineSessionSearchParam(GameID));
+	/*CurrentSearchSettings->QuerySettings.SearchParams.Add(
+		GameIDSetting,
+		FOnlineSessionSearchParam(GameID));*/
 
 	if (!SessionInterface->FindSessions(0, CurrentSearchSettings.ToSharedRef()))
 	{
@@ -248,9 +269,7 @@ void UAGN_SessionSubsystem::HandleFindSessionsComplete(bool bWasSuccessful)
 		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Display, TEXT("Found some sessions"));
 	}
 
-	int NumSession = CurrentSearchSettings->SearchResults.Num();
-	UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Display, TEXT("Ping bucket size: %d"), CurrentSearchSettings->PingBucketSize);
-	OnFindSessionsCompleted.Broadcast(NumSession, bWasSuccessful);
+	OnFindSessionsCompleted.Broadcast(UAGN_SessionSubsystem::WrapSearchResults(CurrentSearchSettings->SearchResults), bWasSuccessful);
 }
 //---------------------------------------------------------------FINDING SESSION------------------------------------------
 
@@ -258,15 +277,56 @@ void UAGN_SessionSubsystem::HandleFindSessionsComplete(bool bWasSuccessful)
 
 //---------------------------------------------------------------JOINING SESSION------------------------------------------
 
-bool UAGN_SessionSubsystem::JoinSession(int32 PlayerNum, FName SessionName)
+bool UAGN_SessionSubsystem::JoinSession(int32 PlayerNum, FOnlineSessionSearchResultWrapper Session)
 {
 	SessionInterface->OnJoinSessionCompleteDelegates.AddUObject(this, &UAGN_SessionSubsystem::HandleJoinSessionComplete);
-	return false;
+
+	FOnlineSessionSearchResult SessiontoJoin = Session.Get();
+
+	SessionInterface->GetResolvedConnectString(SessiontoJoin, NAME_GamePort, CurrentJoiningSessionConnectInfo);
+
+	if (!SessionInterface->JoinSession(0, GameSessionLocalName, SessiontoJoin))
+	{
+		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Error, TEXT("Joining session %s not be started..."), *Session.SessionName);
+		return false;
+	}
+
+	return true;
 }
 
 void UAGN_SessionSubsystem::HandleJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type JoinResult)
 {
 	SessionInterface->ClearOnJoinSessionCompleteDelegates(this);
+
+	bool bIsIn = (JoinResult == EOnJoinSessionCompleteResult::Success || JoinResult == EOnJoinSessionCompleteResult::AlreadyInSession);
+
+	if (!bIsIn)
+	{
+		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Warning, TEXT("Could NOT join session"));
+	}
+	else
+	{
+		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Display, TEXT("Session Joined"));
+		LocalHostingState = EAGN_HostingState::Joined;
+
+		UWorld* World = GetWorld();
+		if (IsValid(World) == false)
+		{
+			UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Error, TEXT("UAGN_SessionSubsystem::HandleJoinSessionComplete IsValid(World) == false"));
+			return;
+		}
+		APlayerController* PC = GetWorld()->GetFirstPlayerController();
+		if (IsValid(PC) == false)
+		{
+			UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Error, TEXT("UAGN_SessionSubsystem::HandleJoinSessionComplete IsValid(PC) == false"));
+			return;
+		}
+		PC->ClientTravel(CurrentJoiningSessionConnectInfo, TRAVEL_Absolute);
+
+	}
+
+	CurrentJoiningSessionConnectInfo = "";
+	OnJoinSessionCompleted.Broadcast(bIsIn);
 }
 //---------------------------------------------------------------JOINING SESSION------------------------------------------
 
@@ -297,4 +357,5 @@ void UAGN_SessionSubsystem::InviteFriendToSession(FUniqueNetIdRef FriendNetIdPtr
 void UAGN_SessionSubsystem::OnSessionUserInviteAccepted(bool bWasSuccessful, int ControllerId, TSharedPtr<const FUniqueNetId, ESPMode::ThreadSafe> UserId, const FOnlineSessionSearchResult& OnlineSessionSearchResult)
 {
 }
+
 //---------------------------------------------------------------FRIEND INVITES------------------------------------------
