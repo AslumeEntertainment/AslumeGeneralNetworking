@@ -182,13 +182,15 @@ bool UAGN_SessionSubsystem::CreateSession(int32 HostingPlayerNum, FString Sessio
 	// You *must* set at least one setting value, because you can not run FindSessions without any filters.
 
 	//SessionSettingsRef
-	SessionSettingsRef.Settings.Add(
+	/*SessionSettingsRef.Settings.Add(
 		GameIDSetting,
-		FOnlineSessionSetting(GameID, EOnlineDataAdvertisementType::ViaOnlineService));
+		FOnlineSessionSetting(GameID, EOnlineDataAdvertisementType::ViaOnlineService));*/
 
 	SessionSettingsRef.Settings.Add(
 		SessionNameSetting,
 		FOnlineSessionSetting(SessionName, EOnlineDataAdvertisementType::ViaOnlineService));
+
+	
 
 	SessionInterface->OnCreateSessionCompleteDelegates.AddUObject(this, &UAGN_SessionSubsystem::HandleCreateSessionComplete);
 

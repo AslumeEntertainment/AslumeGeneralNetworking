@@ -159,9 +159,6 @@ public:
 
 	static TArray<FOnlineSessionSearchResultWrapper> WrapSearchResults(TArray<FOnlineSessionSearchResult> FoundSessions);
 
-	UPROPERTY(EditDefaultsOnly, Category = "ServerSettings | Connection")
-	int ConnectionPort = 7779;
-
 	/**
 	 Used for basic diferentaition between the sessions of different games
 	*
