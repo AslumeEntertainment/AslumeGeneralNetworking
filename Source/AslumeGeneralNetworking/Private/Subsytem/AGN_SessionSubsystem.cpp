@@ -36,6 +36,7 @@ TArray<FOnlineSessionSearchResultWrapper> UAGN_SessionSubsystem::WrapSearchResul
 
 bool UAGN_SessionSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 {
+	return true;
 	if (GetClass()->IsInBlueprint() && Super::ShouldCreateSubsystem(Outer))
 	{
 		return true;
@@ -182,9 +183,9 @@ bool UAGN_SessionSubsystem::CreateSession(int32 HostingPlayerNum, FString Sessio
 	// You *must* set at least one setting value, because you can not run FindSessions without any filters.
 
 	//SessionSettingsRef
-	/*SessionSettingsRef.Settings.Add(
+	SessionSettingsRef.Settings.Add(
 		GameIDSetting,
-		FOnlineSessionSetting(GameID, EOnlineDataAdvertisementType::ViaOnlineService));*/
+		FOnlineSessionSetting(GameID, EOnlineDataAdvertisementType::ViaOnlineService));
 
 	SessionSettingsRef.Settings.Add(
 		SessionNameSetting,
@@ -239,9 +240,11 @@ bool UAGN_SessionSubsystem::FindSessions(FSessionSearchWrapper SearchSettings)
 
 	CurrentSearchSettings = SearchSettings.Get();
 
-	/*CurrentSearchSettings->QuerySettings.SearchParams.Add(
+	CurrentSearchSettings->QuerySettings.SearchParams.Add(
 		GameIDSetting,
-		FOnlineSessionSearchParam(GameID));*/
+		FOnlineSessionSearchParam(GameID));
+
+	CurrentSearchSettings->QuerySettings.Set(FName(TEXT("LOBBYSEARCH")), true, EOnlineComparisonOp::Equals);
 
 	if (!SessionInterface->FindSessions(0, CurrentSearchSettings.ToSharedRef()))
 	{
