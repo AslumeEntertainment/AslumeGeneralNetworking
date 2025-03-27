@@ -36,7 +36,6 @@ TArray<FOnlineSessionSearchResultWrapper> UAGN_SessionSubsystem::WrapSearchResul
 
 bool UAGN_SessionSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 {
-	return true;
 	if (GetClass()->IsInBlueprint() && Super::ShouldCreateSubsystem(Outer))
 	{
 		return true;
@@ -68,6 +67,7 @@ void UAGN_SessionSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	if (SessionInterface == nullptr)
 	{
 		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Error, TEXT("Initialize IsValid(SessionInterface) == false"));
+		return;
 	}
 
 	SessionInterface->OnSessionUserInviteAcceptedDelegates.AddUObject(this, &UAGN_SessionSubsystem::OnSessionUserInviteAccepted);
