@@ -12,20 +12,25 @@ DEFINE_LOG_CATEGORY_STATIC(AslumeGeneralNetwoking_SessionSubsystem, Log, All);
 const FName UAGN_SessionSubsystem::GameIDSetting = FName("GameID");
 const FName UAGN_SessionSubsystem::SessionNameSetting = FName("SessionName");
 
+FOnlineSessionSearchResultWrapper UAGN_SessionSubsystem::WrapSession(FOnlineSessionSearchResult Session)
+{
+	FOnlineSessionSearchResultWrapper SessionWrapped = FOnlineSessionSearchResultWrapper();
+	if (!Session.Session.SessionSettings.Get<FString>(SessionNameSetting, SessionWrapped.SessionName))
+	{
+		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Warning, TEXT("UAGN_SessionSubsystem::WrapSession - Problem Getting Session Name"));
+	}
+	SessionWrapped.Session = Session.Session;
+	SessionWrapped.PingInMs = Session.PingInMs;
+	return SessionWrapped;
+}
+
 TArray<FOnlineSessionSearchResultWrapper> UAGN_SessionSubsystem::WrapSearchResults(TArray<FOnlineSessionSearchResult> FoundSessions)
 {
 	TArray<FOnlineSessionSearchResultWrapper> FoundSessionsWrapped = TArray<FOnlineSessionSearchResultWrapper>();
 
 	for (FOnlineSessionSearchResult Session : FoundSessions)
 	{
-		FOnlineSessionSearchResultWrapper SessionWrapped = FOnlineSessionSearchResultWrapper();
-		if (!Session.Session.SessionSettings.Get<FString>(SessionNameSetting, SessionWrapped.SessionName))
-		{
-			UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Warning, TEXT("UAGN_SessionSubsystem::WrapSearchResults - Problem Getting Session Name"));
-		}
-		SessionWrapped.Session = Session.Session;
-		SessionWrapped.PingInMs = Session.PingInMs;
-		FoundSessionsWrapped.Add(SessionWrapped);
+		FoundSessionsWrapped.Add(WrapSession(Session));
 	}
 
 	return FoundSessionsWrapped;
@@ -341,14 +346,31 @@ void UAGN_SessionSubsystem::HandleJoinSessionComplete(FName SessionName, EOnJoin
 
 bool UAGN_SessionSubsystem::DestroySession(bool InbShouldStayIdle)
 {
-
 	SessionInterface->OnDestroySessionCompleteDelegates.AddUObject(this, &UAGN_SessionSubsystem::HandleDestroySessionComplete);
-	return false;
+
+	bool bSuccess = SessionInterface->DestroySession(GameSessionLocalName);
+	if (!bSuccess)
+	{
+		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Warning, TEXT("Failed to initiate session abandoning........"));
+		return false;
+	}
+	UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Display, TEXT("Abandoning session..."));
+	return true;
 }
 
 void UAGN_SessionSubsystem::HandleDestroySessionComplete(FName SessionName, bool bWasSuccessful)
 {
 	SessionInterface->ClearOnDestroySessionCompleteDelegates(this);
+	if (bWasSuccessful == false)
+	{
+		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Error, TEXT("Session[%s] destruction failed"), *SessionName.ToString());
+	}
+	else
+	{
+		LocalHostingState = EAGN_HostingState::Idle;
+		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Display, TEXT("Session[%s] destructed"), *SessionName.ToString());
+	}
+	OnDestroySessionCompleted.Broadcast(SessionName, bWasSuccessful);
 }
 //---------------------------------------------------------------DESTROYING SESSION------------------------------------------
 
@@ -361,6 +383,15 @@ void UAGN_SessionSubsystem::InviteFriendToSession(FUniqueNetIdRef FriendNetIdPtr
 
 void UAGN_SessionSubsystem::OnSessionUserInviteAccepted(bool bWasSuccessful, int ControllerId, TSharedPtr<const FUniqueNetId, ESPMode::ThreadSafe> UserId, const FOnlineSessionSearchResult& OnlineSessionSearchResult)
 {
-}
+	if (bWasSuccessful == false)
+	{
+		//fire off error delegate for this shit
+		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Warning, TEXT("Invite was NOT accepted properly"));
+		return;
+	}
 
+	UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Display, TEXT("Invite Accepted"));
+	
+	OnInviteAccepted.Broadcast(bWasSuccessful, ControllerId, WrapSession(OnlineSessionSearchResult));
+}
 //---------------------------------------------------------------FRIEND INVITES------------------------------------------

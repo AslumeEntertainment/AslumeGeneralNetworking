@@ -13,8 +13,10 @@
 #include "AGN_SessionSubsystem.generated.h"
 
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCreateSessionCompletedSignature, FName, SessionName, bool, bWasSuccessful);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnInviteAcceptedSignature, bool, bWasSuccessful, int, ControllerId,  FOnlineSessionSearchResultWrapper, OnlineSessionSearchResult);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnFindSessionsCompletedSignature, const TArray<FOnlineSessionSearchResultWrapper>&, Sessions, bool, bWasSuccessful);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCreateSessionCompletedSignature, FName, SessionName, bool, bWasSuccessful);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnJoinSessionCompletedSignature, bool, bWasSuccessful);
 
 /**
@@ -30,7 +32,7 @@ protected:
 	/**
 	Whether the user must stay idle when leaving session
 	*/
-	bool bShouldStayIdle = true;
+	//bool bShouldStayIdle = true;
 
 	IOnlineSessionPtr SessionInterface = nullptr;
 
@@ -150,13 +152,12 @@ protected:
 	*/
 	virtual void OnSessionUserInviteAccepted(bool bWasSuccessful, int ControllerId, TSharedPtr<const FUniqueNetId, ESPMode::ThreadSafe> UserId, const FOnlineSessionSearchResult& OnlineSessionSearchResult);
 
-
-
 public:
 
 	static const FName GameIDSetting;
 	static const FName SessionNameSetting;
 
+	static FOnlineSessionSearchResultWrapper WrapSession(FOnlineSessionSearchResult Session);
 	static TArray<FOnlineSessionSearchResultWrapper> WrapSearchResults(TArray<FOnlineSessionSearchResult> FoundSessions);
 
 	/**
@@ -245,11 +246,13 @@ public:
 
 	virtual void InviteFriendToSession(FUniqueNetIdRef FriendNetIdPtr);
 
+	EAGN_HostingState GetLocalHostingState() { return LocalHostingState; }
+
 	/**
 	* Delegate called after CreateSession attempt finishes
 	* Assignable in blueprints and c++
 	*
-	* @param SessionName - The name of the session whose destruction was attempted
+	* @param SessionName - The name of the session whose creation was attempted
 	* @param bWasSuccessful - Whether the creation was successful
 	*/
 	UPROPERTY(BlueprintAssignable)
@@ -273,4 +276,26 @@ public:
 	*/
 	UPROPERTY(BlueprintAssignable)
 	FOnJoinSessionCompletedSignature OnJoinSessionCompleted;
+
+	/**
+	* Delegate called after DestroySession attempt finishes
+	* Assignable in blueprints and c++
+	*
+	* @param SessionName - The name of the session whose destruction was attempted
+	* @param bWasSuccessful - Whether the destruction was successful
+	*/
+	UPROPERTY(BlueprintAssignable)
+	FOnCreateSessionCompletedSignature OnDestroySessionCompleted;
+
+	/**
+	* Delegate called after OnSessionUserInviteAccepted attempt finishes
+	* Assignable in blueprints and c++
+	* 
+	* @param bWasSuccessful - Whether the destruction was successful
+	* @param ControllerId - The Id of the controller accepting
+	* @param UserId - The online id of the user accepting
+	* @param OnlineSessionSearchResult - Blueprint wrapper for the serach result
+	*/
+	UPROPERTY(BlueprintAssignable)
+	FOnInviteAcceptedSignature OnInviteAccepted;
 };
