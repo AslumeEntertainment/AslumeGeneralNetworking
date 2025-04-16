@@ -15,6 +15,8 @@ void UAGN_GameInstance::OnStart()
 	{
 		GEngine->OnNetworkFailure().AddUObject(this, &UAGN_GameInstance::HandleNetworkFailure);
 	}
+
+	BlueprintInitialization();
 }
 
 void UAGN_GameInstance::HandleNetworkFailure(UWorld* World, UNetDriver* NetDriver, ENetworkFailure::Type FailureType, const FString& ErrorString)

@@ -14,9 +14,9 @@
 
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnInviteAcceptedSignature, bool, bWasSuccessful, int, ControllerId,  FOnlineSessionSearchResultWrapper, OnlineSessionSearchResult);
-
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnFindSessionsCompletedSignature, const TArray<FOnlineSessionSearchResultWrapper>&, Sessions, bool, bWasSuccessful);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCreateSessionCompletedSignature, FName, SessionName, bool, bWasSuccessful);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnDestroySessionCompletedSignature, bool, bWasSuccessful, FName, SessionName, bool, ShouldHandleDestroyResult);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnFindSessionsCompletedSignature, bool, bWasSuccessful, const TArray<FOnlineSessionSearchResultWrapper>&, Sessions);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCreateSessionCompletedSignature, bool, bWasSuccessful, FName, SessionName);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnJoinSessionCompletedSignature, bool, bWasSuccessful);
 
 /**
@@ -32,7 +32,7 @@ protected:
 	/**
 	Whether the user must stay idle when leaving session
 	*/
-	//bool bShouldStayIdle = true;
+	bool PassingShouldHandleDestroyResult = false;
 
 	IOnlineSessionPtr SessionInterface = nullptr;
 
@@ -54,7 +54,8 @@ protected:
 	/**
 	The current user's session state [Idle, Hosting, Joined]
 	*/
-	EAGN_HostingState LocalHostingState = EAGN_HostingState::Idle;
+	EAGN_HostingState CurrentHostingState = EAGN_HostingState::Idle;
+	EAGN_HostingState PreviousHostingState = EAGN_HostingState::Idle;
 
 	/**
 	* Determines whether the subsystem should be creted. Natively turns of the creation unless the class is blueprint successor
@@ -237,17 +238,19 @@ public:
 	/**
 	* Attempt destroying the current local session
 	*
-	* @param InbShouldStayIdle - Whether the player should stay idle or automatically host a session
+	* @param ShouldHandleDestroyResult - Whether the caller should hadle the destruction somehow
 	*
 	* @return Wether the attempt was started
 	*/
 	UFUNCTION(BlueprintCallable)
-	virtual bool DestroySession(bool InbShouldStayIdle = true);
+	virtual bool DestroySession(bool ShouldHandleDestroyResult = false);
 
 	virtual void InviteFriendToSession(FUniqueNetIdRef FriendNetIdPtr);
 
-	EAGN_HostingState GetLocalHostingState() { return LocalHostingState; }
-
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	EAGN_HostingState GetCurrentHostingState() { return CurrentHostingState; }
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	EAGN_HostingState GetPreviousHostingState() { return PreviousHostingState; }
 	/**
 	* Delegate called after CreateSession attempt finishes
 	* Assignable in blueprints and c++
@@ -283,9 +286,10 @@ public:
 	*
 	* @param SessionName - The name of the session whose destruction was attempted
 	* @param bWasSuccessful - Whether the destruction was successful
+	* @param ShouldHandleDestroyResult - Whether the caller should hadle the destruction somehow
 	*/
 	UPROPERTY(BlueprintAssignable)
-	FOnCreateSessionCompletedSignature OnDestroySessionCompleted;
+	FOnDestroySessionCompletedSignature OnDestroySessionCompleted;
 
 	/**
 	* Delegate called after OnSessionUserInviteAccepted attempt finishes

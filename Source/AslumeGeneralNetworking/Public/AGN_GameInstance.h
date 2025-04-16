@@ -36,4 +36,12 @@ public:
 	*
 	*/
 	virtual void OnStart() override;
+
+	/**
+	* Intented to be overriden by blueprints
+	* for blueprint specific setup and delegate binding
+	*
+	*/
+	UFUNCTION(BlueprintImplementableEvent)
+	void BlueprintInitialization();
 };

@@ -80,7 +80,8 @@ void UAGN_SessionSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	SessionInterface->OnSessionParticipantJoinedDelegates.AddUObject(this, &UAGN_SessionSubsystem::RegisterNewPlayer);
 	SessionInterface->OnSessionParticipantLeftDelegates.AddUObject(this, &UAGN_SessionSubsystem::UnRegisterPlayer);
 
-	LocalHostingState = EAGN_HostingState::Idle;
+	CurrentHostingState = EAGN_HostingState::Idle;
+	PreviousHostingState = EAGN_HostingState::Idle;
 }
 
 void UAGN_SessionSubsystem::Deinitialize()
@@ -223,10 +224,11 @@ void UAGN_SessionSubsystem::HandleCreateSessionComplete(FName SessionName, bool 
 	else
 	{
 		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Display, TEXT("Created Session"));
-		LocalHostingState = EAGN_HostingState::Hosting;
+		PreviousHostingState = CurrentHostingState;
+		CurrentHostingState = EAGN_HostingState::Hosting;
 	}
 
-	OnCreateSessionCompleted.Broadcast(SessionName, bWasSuccessful);
+	OnCreateSessionCompleted.Broadcast(bWasSuccessful, SessionName);
 }
 //---------------------------------------------------------------CREATING SESSION------------------------------------------
 
@@ -279,7 +281,7 @@ void UAGN_SessionSubsystem::HandleFindSessionsComplete(bool bWasSuccessful)
 		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Display, TEXT("Found some sessions"));
 	}
 
-	OnFindSessionsCompleted.Broadcast(UAGN_SessionSubsystem::WrapSearchResults(CurrentSearchSettings->SearchResults), bWasSuccessful);
+	OnFindSessionsCompleted.Broadcast(bWasSuccessful, UAGN_SessionSubsystem::WrapSearchResults(CurrentSearchSettings->SearchResults));
 }
 //---------------------------------------------------------------FINDING SESSION------------------------------------------
 
@@ -317,7 +319,8 @@ void UAGN_SessionSubsystem::HandleJoinSessionComplete(FName SessionName, EOnJoin
 	else
 	{
 		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Display, TEXT("Session Joined"));
-		LocalHostingState = EAGN_HostingState::Joined;
+		PreviousHostingState = CurrentHostingState;
+		CurrentHostingState = EAGN_HostingState::Joined;
 
 		UWorld* World = GetWorld();
 		if (IsValid(World) == false)
@@ -344,9 +347,11 @@ void UAGN_SessionSubsystem::HandleJoinSessionComplete(FName SessionName, EOnJoin
 
 //---------------------------------------------------------------DESTROYING SESSION------------------------------------------
 
-bool UAGN_SessionSubsystem::DestroySession(bool InbShouldStayIdle)
+bool UAGN_SessionSubsystem::DestroySession(bool ShouldHandleDestroyResult)
 {
 	SessionInterface->OnDestroySessionCompleteDelegates.AddUObject(this, &UAGN_SessionSubsystem::HandleDestroySessionComplete);
+
+	PassingShouldHandleDestroyResult = ShouldHandleDestroyResult;
 
 	bool bSuccess = SessionInterface->DestroySession(GameSessionLocalName);
 	if (!bSuccess)
@@ -367,10 +372,11 @@ void UAGN_SessionSubsystem::HandleDestroySessionComplete(FName SessionName, bool
 	}
 	else
 	{
-		LocalHostingState = EAGN_HostingState::Idle;
+		PreviousHostingState = CurrentHostingState;
+		CurrentHostingState = EAGN_HostingState::Idle;
 		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Display, TEXT("Session[%s] destructed"), *SessionName.ToString());
 	}
-	OnDestroySessionCompleted.Broadcast(SessionName, bWasSuccessful);
+	OnDestroySessionCompleted.Broadcast(bWasSuccessful, SessionName, PassingShouldHandleDestroyResult);
 }
 //---------------------------------------------------------------DESTROYING SESSION------------------------------------------
 
