@@ -321,25 +321,13 @@ void UAGN_SessionSubsystem::HandleJoinSessionComplete(FName SessionName, EOnJoin
 		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Display, TEXT("Session Joined"));
 		PreviousHostingState = CurrentHostingState;
 		CurrentHostingState = EAGN_HostingState::Joined;
-
-		UWorld* World = GetWorld();
-		if (IsValid(World) == false)
-		{
-			UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Error, TEXT("UAGN_SessionSubsystem::HandleJoinSessionComplete IsValid(World) == false"));
-			return;
-		}
-		APlayerController* PC = GetWorld()->GetFirstPlayerController();
-		if (IsValid(PC) == false)
-		{
-			UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Error, TEXT("UAGN_SessionSubsystem::HandleJoinSessionComplete IsValid(PC) == false"));
-			return;
-		}
-		PC->ClientTravel(CurrentJoiningSessionConnectInfo, TRAVEL_Absolute);
+		//PC->ClientTravel(CurrentJoiningSessionConnectInfo, TRAVEL_Absolute);
 
 	}
+	
+	OnJoinSessionCompleted.Broadcast(bIsIn, CurrentJoiningSessionConnectInfo);
 
 	CurrentJoiningSessionConnectInfo = "";
-	OnJoinSessionCompleted.Broadcast(bIsIn);
 }
 //---------------------------------------------------------------JOINING SESSION------------------------------------------
 

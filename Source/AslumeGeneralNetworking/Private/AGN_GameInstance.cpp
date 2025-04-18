@@ -19,6 +19,11 @@ void UAGN_GameInstance::OnStart()
 	BlueprintInitialization();
 }
 
+void UAGN_GameInstance::ClintTravel(APlayerController* PC, FString URL, ETravelType TravelType, bool Seamless)
+{
+	PC->ClientTravel(URL, TravelType, Seamless);
+}
+
 void UAGN_GameInstance::HandleNetworkFailure(UWorld* World, UNetDriver* NetDriver, ENetworkFailure::Type FailureType, const FString& ErrorString)
 {
 	UE_LOG(AslumeGeneralNetwoking_GameInstance, Warning, TEXT("--------------------------------------------------NETWORK FAILURE-----------------------------------------"));

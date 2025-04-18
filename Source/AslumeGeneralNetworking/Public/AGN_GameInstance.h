@@ -44,4 +44,7 @@ public:
 	*/
 	UFUNCTION(BlueprintImplementableEvent)
 	void BlueprintInitialization();
+
+	UFUNCTION(BlueprintCallable)
+	void ClintTravel(APlayerController* PC, FString URL, ETravelType TravelType, bool Seamless);
 };

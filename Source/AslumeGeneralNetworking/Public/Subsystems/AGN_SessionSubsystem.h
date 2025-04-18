@@ -16,8 +16,8 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnInviteAcceptedSignature, bool, bWasSuccessful, int, ControllerId,  FOnlineSessionSearchResultWrapper, OnlineSessionSearchResult);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnDestroySessionCompletedSignature, bool, bWasSuccessful, FName, SessionName, bool, ShouldHandleDestroyResult);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnFindSessionsCompletedSignature, bool, bWasSuccessful, const TArray<FOnlineSessionSearchResultWrapper>&, Sessions);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnJoinSessionCompletedSignature, bool, bWasSuccessful, FString, CurrentJoiningSessionConnectInfo);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCreateSessionCompletedSignature, bool, bWasSuccessful, FName, SessionName);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnJoinSessionCompletedSignature, bool, bWasSuccessful);
 
 /**
  * 
