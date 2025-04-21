@@ -22,6 +22,12 @@ void UAGN_GameInstance::OnStart()
 void UAGN_GameInstance::ClintTravel(APlayerController* PC, FString URL, ETravelType TravelType, bool Seamless)
 {
 	PC->ClientTravel(URL, TravelType, Seamless);
+	
+}
+
+void UAGN_GameInstance::SerTravel(FString URL, bool bAbsolute)
+{
+	GetWorld()->ServerTravel(URL, bAbsolute);
 }
 
 void UAGN_GameInstance::HandleNetworkFailure(UWorld* World, UNetDriver* NetDriver, ENetworkFailure::Type FailureType, const FString& ErrorString)

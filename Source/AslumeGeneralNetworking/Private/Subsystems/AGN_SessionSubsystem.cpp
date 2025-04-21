@@ -75,6 +75,7 @@ void UAGN_SessionSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		return;
 	}
 
+
 	SessionInterface->OnSessionUserInviteAcceptedDelegates.AddUObject(this, &UAGN_SessionSubsystem::OnSessionUserInviteAccepted);
 
 	SessionInterface->OnSessionParticipantJoinedDelegates.AddUObject(this, &UAGN_SessionSubsystem::RegisterNewPlayer);
@@ -196,8 +197,6 @@ bool UAGN_SessionSubsystem::CreateSession(int32 HostingPlayerNum, FString Sessio
 	SessionSettingsRef.Settings.Add(
 		SessionNameSetting,
 		FOnlineSessionSetting(SessionName, EOnlineDataAdvertisementType::ViaOnlineService));
-
-	
 
 	SessionInterface->OnCreateSessionCompleteDelegates.AddUObject(this, &UAGN_SessionSubsystem::HandleCreateSessionComplete);
 

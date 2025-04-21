@@ -47,4 +47,7 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void ClintTravel(APlayerController* PC, FString URL, ETravelType TravelType, bool Seamless);
+
+	UFUNCTION(BlueprintCallable)
+	void SerTravel(FString URL, bool bAbsolute);
 };
