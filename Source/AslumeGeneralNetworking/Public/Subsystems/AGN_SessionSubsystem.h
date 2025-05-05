@@ -245,6 +245,12 @@ public:
 	UFUNCTION(BlueprintCallable)
 	virtual bool DestroySession(bool ShouldHandleDestroyResult = false);
 
+	UFUNCTION(BlueprintCallable)
+	void TryRegisterNewPlayer(FName SessionName, APlayerController* TriggeringPlayer);
+
+	UFUNCTION(BlueprintCallable)
+	void TryUnRegisterPlayer(FName SessionName, APlayerController* TriggeringPlayer);
+
 	virtual void InviteFriendToSession(FUniqueNetIdRef FriendNetIdPtr);
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)

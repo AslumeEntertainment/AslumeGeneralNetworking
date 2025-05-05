@@ -140,8 +140,21 @@ void UAGN_SessionSubsystem::HandleRegisterNewPlayerComplete(FName SessionName, c
 	}
 }
 
+void UAGN_SessionSubsystem::TryRegisterNewPlayer(FName SessionName, APlayerController* TriggeringPlayer)
+{
+	UNetConnection* RemoteNetConnection = Cast<UNetConnection>(TriggeringPlayer->Player);
+	if (IsValid(RemoteNetConnection))
+	{
+		RegisterNewPlayer(SessionName, *RemoteNetConnection->PlayerId.GetUniqueNetId());
+	}
+		 
+}
+	
+
+
 void UAGN_SessionSubsystem::UnRegisterPlayer(FName SessionName, const FUniqueNetId& PlayerID, EOnSessionParticipantLeftReason Reason)
 {
+	UE_LOG(LogTemp, Warning, TEXT("Nqkoi leftna"));
 	if (!SessionInterface->IsPlayerInSession(GameSessionLocalName, PlayerID))
 	{
 		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Display, TEXT("Player[%s] is NOT in session: %s"), *PlayerID.ToString(), *SessionName.ToString());
@@ -170,6 +183,15 @@ void UAGN_SessionSubsystem::HandleUnRegisterPlayerComplete(FName SessionName, co
 	for (FUniqueNetIdRef PlayerID : Players)
 	{
 		UE_LOG(AslumeGeneralNetwoking_SessionSubsystem, Error, TEXT("Player[%s] UnRegistered Successfully from session: %s"), *PlayerID.Get().ToString(), *SessionName.ToString());
+	}
+}
+
+void UAGN_SessionSubsystem::TryUnRegisterPlayer(FName SessionName, APlayerController* TriggeringPlayer)
+{
+	UNetConnection* RemoteNetConnection = Cast<UNetConnection>(TriggeringPlayer->Player);
+	if (IsValid(RemoteNetConnection))
+	{
+		UnRegisterPlayer(SessionName, *RemoteNetConnection->PlayerId.GetUniqueNetId(), EOnSessionParticipantLeftReason::Left);
 	}
 }
 //---------------------------------------------------------------REGISTERING WORK------------------------------------------
