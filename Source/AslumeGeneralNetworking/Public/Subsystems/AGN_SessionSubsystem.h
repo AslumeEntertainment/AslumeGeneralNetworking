@@ -254,6 +254,9 @@ public:
 	virtual void InviteFriendToSession(FUniqueNetIdRef FriendNetIdPtr);
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
+	FName GetGameSessionLocalName() { return GameSessionLocalName; }
+
+	UFUNCTION(BlueprintCallable, BlueprintPure)
 	EAGN_HostingState GetCurrentHostingState() { return CurrentHostingState; }
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	EAGN_HostingState GetPreviousHostingState() { return PreviousHostingState; }
